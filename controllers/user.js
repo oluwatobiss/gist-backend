@@ -4,6 +4,20 @@ const bcrypt = require("bcryptjs");
 const validate = require("../middlewares/validator");
 const prisma = new PrismaClient();
 
+async function getUsers(req, res) {
+  try {
+    if (req.query.status !== "ADMIN")
+      return res.status(400).json({ message: "Invalid access credentials" });
+    const users = await prisma.user.findMany();
+    await prisma.$disconnect();
+    return res.json(users);
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
 const createUser = [
   validate.signUpForm,
   async (req, res, next) => {
@@ -49,4 +63,4 @@ const createUser = [
   },
 ];
 
-module.exports = { createUser };
+module.exports = { getUsers, createUser };
