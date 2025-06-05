@@ -2,7 +2,13 @@ const { PrismaClient } = require("../generated/prisma/client");
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const validate = require("../middlewares/validator");
+const StreamChat = require("stream-chat").StreamChat;
+
 const prisma = new PrismaClient();
+const serverClient = StreamChat.getInstance(
+  process.env.STREAM_API_KEY,
+  process.env.STREAM_API_SECRET
+);
 
 async function getUsers(req, res) {
   try {
@@ -53,6 +59,14 @@ const createUser = [
           },
         });
         await prisma.$disconnect();
+        const updateResponse = await serverClient.upsertUser({
+          id: user.username,
+          role: status === "ADMIN" ? "admin" : "user",
+        });
+
+        console.log("=== createUser ===");
+        console.log(updateResponse);
+
         return res.json({ id: user.id, username });
       } catch (e) {
         console.error(e);

@@ -6,10 +6,16 @@ const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const validate = require("../middlewares/validator");
+const StreamChat = require("stream-chat").StreamChat;
 
 const router = Router();
 const prisma = new PrismaClient();
 const optionsObject = { usernameField: "email" };
+
+const serverClient = StreamChat.getInstance(
+  process.env.STREAM_API_KEY,
+  process.env.STREAM_API_SECRET
+);
 
 passport.use(
   new LocalStrategy(optionsObject, async (email, password, done) => {
@@ -46,11 +52,18 @@ router.post("/", validate.loginForm, async (req, res, next) => {
       const user = { id: userData.id };
       req.login(user, { session: false }, async (error) => {
         if (error) return next(error);
+        const streamToken = serverClient.createToken("invalid");
+        // const streamToken = serverClient.createToken(userData.username);
         const payload = {
           id: user.id,
           username: userData.username,
           status: userData.status,
+          streamToken,
         };
+
+        console.log("=== authentication route ===");
+        console.log(payload);
+
         const token = jwt.sign(payload, process.env.JWT_SECRET);
         return res.json({ token, payload });
       });
