@@ -52,20 +52,18 @@ router.post("/", validate.loginForm, async (req, res, next) => {
       const user = { id: userData.id };
       req.login(user, { session: false }, async (error) => {
         if (error) return next(error);
-        const streamToken = serverClient.createToken("invalid");
-        // const streamToken = serverClient.createToken(userData.username);
+        const streamToken = serverClient.createToken(userData.username);
         const payload = {
           id: user.id,
           username: userData.username,
           status: userData.status,
-          streamToken,
         };
 
         console.log("=== authentication route ===");
         console.log(payload);
 
         const token = jwt.sign(payload, process.env.JWT_SECRET);
-        return res.json({ token, payload });
+        return res.json({ token, payload, streamToken });
       });
     } catch (error) {
       return next(error);
