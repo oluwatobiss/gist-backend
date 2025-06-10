@@ -6,7 +6,8 @@ const StreamChat = require("stream-chat").StreamChat;
 const prisma = new PrismaClient();
 const serverClient = StreamChat.getInstance(
   process.env.STREAM_API_KEY,
-  process.env.STREAM_API_SECRET
+  process.env.STREAM_API_SECRET,
+  { timeout: 6000 }
 );
 
 async function getChannels(req, res) {
@@ -76,9 +77,12 @@ async function deleteChannel(req, res) {
     const id = +req.params.id;
     const dbChannel = await prisma.channel.delete({ where: { id } });
     await prisma.$disconnect();
-    const streamResponse = await serverClient.deleteChannels([id], {
-      hard_delete: true,
-    });
+    const streamResponse = await serverClient.deleteChannels(
+      [`messaging:${dbChannel.name}-${dbChannel.id}`],
+      {
+        hard_delete: true,
+      }
+    );
 
     console.log("=== deleteChannel ===");
     console.log({ dbChannel, streamResponse });
