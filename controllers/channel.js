@@ -9,6 +9,24 @@ const serverClient = StreamChat.getInstance(
   process.env.STREAM_API_SECRET
 );
 
+async function getChannels(req, res) {
+  try {
+    if (req.query.status !== "ADMIN")
+      return res.status(400).json({ message: "Invalid access credentials" });
+    const channels = await prisma.channel.findMany();
+    await prisma.$disconnect();
+
+    console.log("=== getChannels ===");
+    console.log(channels);
+
+    return res.json(channels);
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
 const createChannel = [
   validate.createChannelForm,
   async (req, res) => {
@@ -53,4 +71,24 @@ const createChannel = [
   },
 ];
 
-module.exports = { createChannel };
+async function deleteChannel(req, res) {
+  try {
+    const id = +req.params.id;
+    const dbChannel = await prisma.channel.delete({ where: { id } });
+    await prisma.$disconnect();
+    const streamResponse = await serverClient.deleteChannels([id], {
+      hard_delete: true,
+    });
+
+    console.log("=== deleteChannel ===");
+    console.log({ dbChannel, streamResponse });
+
+    return res.json({ dbChannel, streamResponse });
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
+module.exports = { getChannels, createChannel, deleteChannel };
