@@ -52,8 +52,22 @@ const loginForm = [
     .escape(),
 ];
 
+const createChannelForm = [
+  body("name")
+    .trim()
+    .notEmpty()
+    .withMessage(`Name ${emptyErr}.`)
+    .escape()
+    .isAlpha()
+    .withMessage(`Name ${alphaErr}.`)
+    .isLength({ min: 2, max: 64 })
+    .withMessage(`Name ${lengthErr(2, 64)}.`),
+  body("imageUrl").trim().isURL().withMessage("Enter a valid URL."),
+];
+
 module.exports = {
   signUpForm,
   updateUserForm,
   loginForm,
+  createChannelForm,
 };
