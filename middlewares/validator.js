@@ -52,13 +52,13 @@ const loginForm = [
     .escape(),
 ];
 
-const createChannelForm = [
+const channelForm = [
   body("name")
     .trim()
     .notEmpty()
     .withMessage(`Name ${emptyErr}.`)
     .escape()
-    .isAlpha()
+    .isAlpha("en-US", { ignore: " " })
     .withMessage(`Name ${alphaErr}.`)
     .isLength({ min: 2, max: 64 })
     .withMessage(`Name ${lengthErr(2, 64)}.`),
@@ -69,5 +69,5 @@ module.exports = {
   signUpForm,
   updateUserForm,
   loginForm,
-  createChannelForm,
+  channelForm,
 };

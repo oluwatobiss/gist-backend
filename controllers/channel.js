@@ -29,7 +29,7 @@ async function getChannels(req, res) {
 }
 
 const createChannel = [
-  validate.createChannelForm,
+  validate.channelForm,
   async (req, res) => {
     const result = validationResult(req);
     if (!result.isEmpty()) {
@@ -46,15 +46,11 @@ const createChannel = [
         data: { name, imageUrl, creatorId: req.query.creator },
       });
       await prisma.$disconnect();
-      const streamChannel = serverClient.channel(
-        "messaging",
-        `${channel.name}-${channel.id}`,
-        {
-          name: channel.name,
-          image: channel.imageUrl,
-          created_by_id: channel.creatorId,
-        }
-      );
+      const streamChannel = serverClient.channel("messaging", `${channel.id}`, {
+        name: channel.name,
+        image: channel.imageUrl,
+        created_by_id: channel.creatorId,
+      });
 
       await streamChannel.create();
 
@@ -72,13 +68,53 @@ const createChannel = [
   },
 ];
 
+const updateChannel = [
+  validate.channelForm,
+  async (req, res) => {
+    const result = validationResult(req);
+    if (!result.isEmpty())
+      return res.status(400).json({ errors: result.array() });
+    try {
+      console.log("=== updateChannel ===");
+      const id = +req.params.id;
+      const { name, imageUrl } = req.body;
+      creatorId = req.query.creator;
+      const channel = await prisma.channel.update({
+        where: { id },
+        data: { name, imageUrl, creatorId },
+      });
+      await prisma.$disconnect();
+
+      console.log(channel);
+
+      const streamChannel = serverClient.channel("messaging", `${channel.id}`);
+      await streamChannel.update(
+        {
+          name: channel.name,
+          image: channel.imageUrl,
+          created_by_id: channel.creatorId,
+        },
+        { text: `${creatorId} updated the channel`, user_id: creatorId }
+      );
+
+      console.log(streamChannel);
+
+      return res.json(channel);
+    } catch (e) {
+      console.error(e);
+      await prisma.$disconnect();
+      process.exit(1);
+    }
+  },
+];
+
 async function deleteChannel(req, res) {
   try {
     const id = +req.params.id;
     const dbChannel = await prisma.channel.delete({ where: { id } });
     await prisma.$disconnect();
     const streamResponse = await serverClient.deleteChannels(
-      [`messaging:${dbChannel.name}-${dbChannel.id}`],
+      [`messaging:${dbChannel.id}`],
       {
         hard_delete: true,
       }
@@ -95,4 +131,4 @@ async function deleteChannel(req, res) {
   }
 }
 
-module.exports = { getChannels, createChannel, deleteChannel };
+module.exports = { getChannels, createChannel, updateChannel, deleteChannel };
