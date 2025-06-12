@@ -12,13 +12,22 @@ const serverClient = StreamChat.getInstance(
 
 async function getChannels(req, res) {
   try {
-    const channels = await prisma.channel.findMany();
+    const channels = await prisma.channel.findMany({
+      include: { members: true },
+    });
     await prisma.$disconnect();
 
-    console.log("=== getChannels ===");
-    console.log(channels);
+    const channelsWithLessMembersData = channels.map((channel) => {
+      return {
+        ...channel,
+        members: channel.members.map((member) => member.username),
+      };
+    });
 
-    return res.json(channels);
+    console.log("=== getChannels ===");
+    console.log(channelsWithLessMembersData);
+
+    return res.json(channelsWithLessMembersData);
   } catch (e) {
     console.error(e);
     await prisma.$disconnect();
@@ -121,12 +130,14 @@ async function subscribeToChannel(req, res) {
 
     console.log(channel);
 
-    const streamChannel = serverClient.channel("messaging", `${channelId}`);
-    await streamChannel.addMembers([userId]);
+    // const streamChannel = serverClient.channel("messaging", `${channelId}`);
+    // await streamChannel.addMembers([userId]);
 
-    console.log(streamChannel);
+    // console.log(streamChannel);
+    console.log("=== Channel's members ===");
+    console.log(channel.members.map((member) => member.username));
 
-    return res.json(channel);
+    return res.json(channel.members.map((member) => member.username));
   } catch (e) {
     console.error(e);
     await prisma.$disconnect();
