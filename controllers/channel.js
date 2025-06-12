@@ -12,8 +12,6 @@ const serverClient = StreamChat.getInstance(
 
 async function getChannels(req, res) {
   try {
-    if (req.query.status !== "ADMIN")
-      return res.status(400).json({ message: "Invalid access credentials" });
     const channels = await prisma.channel.findMany();
     await prisma.$disconnect();
 
@@ -36,10 +34,6 @@ const createChannel = [
       return res.status(400).json({ errors: result.array() });
     }
     const { name, imageUrl } = req.body;
-
-    console.log("=== createChannel ===");
-    console.log(req.body);
-    console.log({ creator: req.query.creator });
 
     try {
       const channel = await prisma.channel.create({
@@ -78,10 +72,9 @@ const updateChannel = [
       console.log("=== updateChannel ===");
       const id = +req.params.id;
       const { name, imageUrl } = req.body;
-      creatorId = req.query.creator;
       const channel = await prisma.channel.update({
         where: { id },
-        data: { name, imageUrl, creatorId },
+        data: { name, imageUrl, creatorId: req.query.creator },
       });
       await prisma.$disconnect();
 
@@ -94,7 +87,10 @@ const updateChannel = [
           image: channel.imageUrl,
           created_by_id: channel.creatorId,
         },
-        { text: `${creatorId} updated the channel`, user_id: creatorId }
+        {
+          text: `${channel.creatorId} updated the channel`,
+          user_id: channel.creatorId,
+        }
       );
 
       console.log(streamChannel);
@@ -107,6 +103,36 @@ const updateChannel = [
     }
   },
 ];
+
+async function subscribeToChannel(req, res) {
+  try {
+    console.log("=== subscribeToChannel ===");
+    const channelId = +req.params.channelId;
+    const userId = req.params.username;
+
+    console.log({ channelId, userId });
+
+    const channel = await prisma.channel.update({
+      where: { id: channelId },
+      data: { members: { connect: { username: userId } } },
+      include: { members: true },
+    });
+    await prisma.$disconnect();
+
+    console.log(channel);
+
+    const streamChannel = serverClient.channel("messaging", `${channelId}`);
+    await streamChannel.addMembers([userId]);
+
+    console.log(streamChannel);
+
+    return res.json(channel);
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
 
 async function deleteChannel(req, res) {
   try {
@@ -131,4 +157,10 @@ async function deleteChannel(req, res) {
   }
 }
 
-module.exports = { getChannels, createChannel, updateChannel, deleteChannel };
+module.exports = {
+  getChannels,
+  createChannel,
+  updateChannel,
+  subscribeToChannel,
+  deleteChannel,
+};

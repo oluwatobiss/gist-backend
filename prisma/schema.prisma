@@ -15,22 +15,24 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  firstName String
-  lastName  String
-  username  String    @unique
-  email     String    @unique
-  password  String
-  status    Status    @default(BASIC)
-  channel   Channel[]
+  id         Int       @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  username   String    @unique
+  email      String    @unique
+  password   String
+  status     Status    @default(BASIC)
+  channels   Channel[] @relation("Channels")
+  membership Channel[] @relation("Membership")
 }
 
 model Channel {
   id        Int    @id @default(autoincrement())
   name      String @unique
   imageUrl  String
-  creator   User   @relation(fields: [creatorId], references: [username])
+  creator   User   @relation("Channels", fields: [creatorId], references: [username])
   creatorId String
+  members   User[] @relation("Membership")
 }
 
 enum Status {

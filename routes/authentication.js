@@ -20,7 +20,10 @@ const serverClient = StreamChat.getInstance(
 passport.use(
   new LocalStrategy(optionsObject, async (email, password, done) => {
     try {
-      const userData = await prisma.user.findUnique({ where: { email } });
+      const userData = await prisma.user.findUnique({
+        where: { email },
+        include: { membership: true },
+      });
       await prisma.$disconnect();
       if (!userData)
         return done(null, false, { msg: "Incorrect email", path: "email" });
@@ -57,6 +60,7 @@ router.post("/", validate.loginForm, async (req, res, next) => {
           id: user.id,
           username: userData.username,
           status: userData.status,
+          membership: userData.membership,
         };
 
         console.log("=== authentication route ===");
