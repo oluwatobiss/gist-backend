@@ -145,6 +145,38 @@ async function subscribeToChannel(req, res) {
   }
 }
 
+async function unsubscribeFromChannel(req, res) {
+  try {
+    console.log("=== unsubscribeFromChannel ===");
+    const channelId = +req.params.channelId;
+    const userId = req.params.username;
+
+    console.log({ channelId, userId });
+
+    const channel = await prisma.channel.update({
+      where: { id: channelId },
+      data: { members: { disconnect: { username: userId } } },
+      include: { members: true },
+    });
+    await prisma.$disconnect();
+
+    console.log(channel);
+
+    // const streamChannel = serverClient.channel("messaging", `${channelId}`);
+    // await streamChannel.removeMembers([userId]);
+
+    // console.log(streamChannel);
+    console.log("=== Channel's members ===");
+    console.log(channel.members.map((member) => member.username));
+
+    return res.json(channel.members.map((member) => member.username));
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
 async function deleteChannel(req, res) {
   try {
     const id = +req.params.id;
@@ -173,5 +205,6 @@ module.exports = {
   createChannel,
   updateChannel,
   subscribeToChannel,
+  unsubscribeFromChannel,
   deleteChannel,
 };

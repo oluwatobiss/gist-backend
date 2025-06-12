@@ -7,5 +7,6 @@ router.post("/", controller.createChannel);
 router.post("/:channelId/users/:username", controller.subscribeToChannel);
 router.put("/:id", controller.updateChannel);
 router.delete("/:id", controller.deleteChannel);
+router.delete("/:channelId/users/:username", controller.unsubscribeFromChannel);
 
 module.exports = router;
