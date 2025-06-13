@@ -65,6 +65,7 @@ router.post("/", validate.loginForm, async (req, res, next) => {
 
         console.log("=== authentication route ===");
         console.log(payload);
+        console.log(userData);
 
         const token = jwt.sign(payload, process.env.JWT_SECRET);
         return res.json({ token, payload, streamToken });

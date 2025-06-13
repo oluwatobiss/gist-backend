@@ -76,13 +76,13 @@ const createUser = [
           },
         });
         await prisma.$disconnect();
-        const updateResponse = await serverClient.upsertUser({
+        const upsertResponse = await serverClient.upsertUser({
           id: user.username,
           role: status === "ADMIN" ? "admin" : "user",
         });
 
         console.log("=== createUser ===");
-        console.log(updateResponse);
+        console.log(upsertResponse);
 
         return res.json({ id: user.id, username });
       } catch (e) {
@@ -91,6 +91,57 @@ const createUser = [
         process.exit(1);
       }
     });
+  },
+];
+
+const updateUser = [
+  validate.updateUserForm,
+  async (req, res, next) => {
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+      return res.status(400).json({ errors: result.array() });
+    }
+    // No username update to prevent StreamChat from creating a new user
+    const { firstName, lastName, email, admin, adminCode } = req.body;
+
+    console.log("=== updateUser 01 ===");
+    console.log(req.body);
+
+    let status = "BASIC";
+    if (admin) {
+      if (adminCode === process.env.ADMIN_CODE) {
+        status = "ADMIN";
+      } else {
+        return next(
+          Error("Incorrect admin code provided", {
+            cause: { msg: "Incorrect code", path: "adminCode" },
+          })
+        );
+      }
+    }
+    try {
+      const id = +req.params.id;
+      const user = await prisma.user.update({
+        where: { id },
+        data: { firstName, lastName, email, status },
+      });
+      await prisma.$disconnect();
+      const upsertResponse = await serverClient.upsertUser({
+        id: user.username,
+        role: status === "ADMIN" ? "admin" : "user",
+      });
+
+      console.log("=== updateUser ===");
+      console.log(upsertResponse);
+      console.log("=== user ===");
+      console.log(user);
+
+      return res.json({ id: user.id });
+    } catch (e) {
+      console.error(e);
+      await prisma.$disconnect();
+      process.exit(1);
+    }
   },
 ];
 
@@ -107,4 +158,4 @@ async function deleteUser(req, res) {
   }
 }
 
-module.exports = { getUser, getUsers, createUser, deleteUser };
+module.exports = { getUser, getUsers, createUser, updateUser, deleteUser };
