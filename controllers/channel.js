@@ -128,6 +128,7 @@ async function subscribeToChannel(req, res) {
     });
     await prisma.$disconnect();
 
+    console.log("=== DB subscribeToChannel ===");
     console.log(channel);
 
     const streamChannel = serverClient.channel("messaging", `${channelId}`);
@@ -139,7 +140,23 @@ async function subscribeToChannel(req, res) {
 
     return res.json(channel.members.map((member) => member.username));
   } catch (e) {
+    console.log("=== Error data object ===");
     console.error(e);
+
+    // Reverse db action if StreamChat error
+    if (e?.response?.request?.host.search(/stream/i)) {
+      const channelId = +req.params.channelId;
+      const userId = req.params.username;
+      const channel = await prisma.channel.update({
+        where: { id: channelId },
+        data: { members: { disconnect: { username: userId } } },
+        include: { members: true },
+      });
+      console.log("=== DB REVERSE subscribeToChannel ===");
+      console.error(e.response.request);
+      console.log(channel);
+    }
+
     await prisma.$disconnect();
     process.exit(1);
   }
