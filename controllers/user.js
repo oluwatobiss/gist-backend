@@ -104,22 +104,32 @@ const updateUser = [
     }
     try {
       const id = +req.params.id;
-      const user = await prisma.user.update({
+      const userData = await prisma.user.update({
         where: { id },
         data: { firstName, lastName, email, status },
+        include: { membership: true },
       });
       await prisma.$disconnect();
       const upsertResponse = await serverClient.upsertUser({
-        id: user.username,
+        id: userData.username,
         role: status === "ADMIN" ? "admin" : "user",
       });
+      const lessUserData = {
+        ...userData,
+        password: "***",
+        membership: userData.membership.map((channel) => channel.name),
+      };
+
+      console.log("=== user ===");
+      console.log(userData);
+
+      console.log("=== lessUserData ===");
+      console.log(lessUserData);
 
       console.log("=== updateUser ===");
       console.log(upsertResponse);
-      console.log("=== user ===");
-      console.log(user);
 
-      return res.json({ id: user.id });
+      return res.json(lessUserData);
     } catch (e) {
       console.error(e);
       await prisma.$disconnect();

@@ -56,18 +56,18 @@ router.post("/", validate.loginForm, async (req, res, next) => {
   const result = validationResult(req);
   if (!result.isEmpty())
     return res.status(400).json({ errors: result.array() });
-  passport.authenticate("local", async (err, lessUserData, info) => {
+  passport.authenticate("local", async (err, payload, info) => {
     try {
-      if (err || !lessUserData) {
+      if (err || !payload) {
         const error = Error("Authentication error", { cause: info });
         return next(error);
       }
-      const user = { id: lessUserData.id };
+      const user = { id: payload.id };
       req.login(user, { session: false }, async (error) => {
         if (error) return next(error);
-        const streamToken = serverClient.createToken(lessUserData.username);
-        const token = jwt.sign(lessUserData, process.env.JWT_SECRET);
-        return res.json({ token, lessUserData, streamToken });
+        const streamToken = serverClient.createToken(payload.username);
+        const token = jwt.sign(payload, process.env.JWT_SECRET);
+        return res.json({ token, payload, streamToken });
       });
     } catch (error) {
       return next(error);
