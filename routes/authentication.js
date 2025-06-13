@@ -33,7 +33,17 @@ passport.use(
           msg: "Incorrect password",
           path: "password",
         });
-      return done(null, userData);
+
+      const lessUserData = {
+        ...userData,
+        password: "***",
+        membership: userData.membership.map((channel) => channel.name),
+      };
+
+      console.log("=== lessUserData ===");
+      console.log(lessUserData);
+
+      return done(null, lessUserData);
     } catch (e) {
       console.error(e);
       await prisma.$disconnect();
@@ -46,29 +56,18 @@ router.post("/", validate.loginForm, async (req, res, next) => {
   const result = validationResult(req);
   if (!result.isEmpty())
     return res.status(400).json({ errors: result.array() });
-  passport.authenticate("local", async (err, userData, info) => {
+  passport.authenticate("local", async (err, lessUserData, info) => {
     try {
-      if (err || !userData) {
+      if (err || !lessUserData) {
         const error = Error("Authentication error", { cause: info });
         return next(error);
       }
-      const user = { id: userData.id };
+      const user = { id: lessUserData.id };
       req.login(user, { session: false }, async (error) => {
         if (error) return next(error);
-        const streamToken = serverClient.createToken(userData.username);
-        const payload = {
-          id: user.id,
-          username: userData.username,
-          status: userData.status,
-          membership: userData.membership,
-        };
-
-        console.log("=== authentication route ===");
-        console.log(payload);
-        console.log(userData);
-
-        const token = jwt.sign(payload, process.env.JWT_SECRET);
-        return res.json({ token, payload, streamToken });
+        const streamToken = serverClient.createToken(lessUserData.username);
+        const token = jwt.sign(lessUserData, process.env.JWT_SECRET);
+        return res.json({ token, lessUserData, streamToken });
       });
     } catch (error) {
       return next(error);
