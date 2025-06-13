@@ -10,6 +10,23 @@ const serverClient = StreamChat.getInstance(
   process.env.STREAM_API_SECRET
 );
 
+async function getUser(req, res) {
+  try {
+    const id = +req.params.id;
+    const user = await prisma.user.findUnique({ where: { id } });
+    await prisma.$disconnect();
+
+    console.log("=== getUser ===");
+    console.log(user);
+
+    return res.json(user);
+  } catch (e) {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
 async function getUsers(req, res) {
   try {
     if (req.query.status !== "ADMIN")
@@ -90,4 +107,4 @@ async function deleteUser(req, res) {
   }
 }
 
-module.exports = { getUsers, createUser, deleteUser };
+module.exports = { getUser, getUsers, createUser, deleteUser };

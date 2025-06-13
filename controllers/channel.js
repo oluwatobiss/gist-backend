@@ -130,10 +130,10 @@ async function subscribeToChannel(req, res) {
 
     console.log(channel);
 
-    // const streamChannel = serverClient.channel("messaging", `${channelId}`);
-    // await streamChannel.addMembers([userId]);
+    const streamChannel = serverClient.channel("messaging", `${channelId}`);
+    await streamChannel.addMembers([userId]);
 
-    // console.log(streamChannel);
+    console.log(streamChannel);
     console.log("=== Channel's members ===");
     console.log(channel.members.map((member) => member.username));
 
@@ -162,10 +162,10 @@ async function unsubscribeFromChannel(req, res) {
 
     console.log(channel);
 
-    // const streamChannel = serverClient.channel("messaging", `${channelId}`);
-    // await streamChannel.removeMembers([userId]);
+    const streamChannel = serverClient.channel("messaging", `${channelId}`);
+    await streamChannel.removeMembers([userId]);
 
-    // console.log(streamChannel);
+    console.log(streamChannel);
     console.log("=== Channel's members ===");
     console.log(channel.members.map((member) => member.username));
 
