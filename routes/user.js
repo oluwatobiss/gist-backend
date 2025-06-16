@@ -4,7 +4,7 @@ const router = Router();
 
 router.get("/", controller.getUsers);
 router.post("/", controller.createUser);
-router.put("/:id", controller.updateUser);
-router.delete("/:id", controller.deleteUser);
+router.put("/:username", controller.updateUser);
+router.delete("/:username", controller.deleteUser);
 
 module.exports = router;

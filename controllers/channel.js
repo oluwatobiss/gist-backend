@@ -42,22 +42,23 @@ const createChannel = [
     if (!result.isEmpty()) {
       return res.status(400).json({ errors: result.array() });
     }
-    const { name, imageUrl } = req.body;
-
     try {
+      const { name, imageUrl } = req.body;
+      const creatorId = req.query.creator;
+      const streamId = name.trim().replace(/\s/g, "-").toLowerCase();
+      const streamChannel = serverClient.channel("messaging", streamId, {
+        name,
+        image: imageUrl,
+        created_by_id: creatorId,
+      });
+      await streamChannel.create();
       const channel = await prisma.channel.create({
-        data: { name, imageUrl, creatorId: req.query.creator },
+        data: { name, imageUrl, creatorId, streamId },
       });
       await prisma.$disconnect();
-      const streamChannel = serverClient.channel("messaging", `${channel.id}`, {
-        name: channel.name,
-        image: channel.imageUrl,
-        created_by_id: channel.creatorId,
-      });
-
-      await streamChannel.create();
 
       console.log("=== createChannel ===");
+      console.log(streamId);
       console.log(channel);
       console.log(streamChannel);
 
@@ -79,30 +80,25 @@ const updateChannel = [
       return res.status(400).json({ errors: result.array() });
     try {
       console.log("=== updateChannel ===");
-      const id = +req.params.id;
+      const streamId = req.params.id;
+      const creatorId = req.query.creator;
       const { name, imageUrl } = req.body;
+      const streamChannel = serverClient.channel("messaging", streamId);
+      await streamChannel.update(
+        { name: name, image: imageUrl, created_by_id: creatorId },
+        { text: `${creatorId} updated the channel`, user_id: creatorId }
+      );
+
+      console.log(streamId);
+      console.log(streamChannel);
+
       const channel = await prisma.channel.update({
-        where: { id },
+        where: { streamId },
         data: { name, imageUrl, creatorId: req.query.creator },
       });
       await prisma.$disconnect();
 
       console.log(channel);
-
-      const streamChannel = serverClient.channel("messaging", `${channel.id}`);
-      await streamChannel.update(
-        {
-          name: channel.name,
-          image: channel.imageUrl,
-          created_by_id: channel.creatorId,
-        },
-        {
-          text: `${channel.creatorId} updated the channel`,
-          user_id: channel.creatorId,
-        }
-      );
-
-      console.log(streamChannel);
 
       return res.json(channel);
     } catch (e) {
@@ -116,13 +112,18 @@ const updateChannel = [
 async function subscribeToChannel(req, res) {
   try {
     console.log("=== subscribeToChannel ===");
-    const channelId = +req.params.channelId;
+    const channelId = req.params.channelId;
     const userId = req.params.username;
 
     console.log({ channelId, userId });
 
+    const streamChannel = serverClient.channel("messaging", channelId);
+    await streamChannel.addMembers([userId]);
+
+    console.log(streamChannel);
+
     const channel = await prisma.channel.update({
-      where: { id: channelId },
+      where: { streamId: channelId },
       data: { members: { connect: { username: userId } } },
       include: { members: true },
     });
@@ -131,32 +132,12 @@ async function subscribeToChannel(req, res) {
     console.log("=== DB subscribeToChannel ===");
     console.log(channel);
 
-    const streamChannel = serverClient.channel("messaging", `${channelId}`);
-    await streamChannel.addMembers([userId]);
-
-    console.log(streamChannel);
     console.log("=== Channel's members ===");
     console.log(channel.members.map((member) => member.username));
 
     return res.json(channel.members.map((member) => member.username));
   } catch (e) {
-    console.log("=== Error data object ===");
     console.error(e);
-
-    // Reverse db action if StreamChat error
-    if (e?.response?.request?.host.search(/stream/i)) {
-      const channelId = +req.params.channelId;
-      const userId = req.params.username;
-      const channel = await prisma.channel.update({
-        where: { id: channelId },
-        data: { members: { disconnect: { username: userId } } },
-        include: { members: true },
-      });
-      console.log("=== DB REVERSE subscribeToChannel ===");
-      console.error(e.response.request);
-      console.log(channel);
-    }
-
     await prisma.$disconnect();
     process.exit(1);
   }
@@ -165,13 +146,18 @@ async function subscribeToChannel(req, res) {
 async function unsubscribeFromChannel(req, res) {
   try {
     console.log("=== unsubscribeFromChannel ===");
-    const channelId = +req.params.channelId;
+    const channelId = req.params.channelId;
     const userId = req.params.username;
 
     console.log({ channelId, userId });
 
+    const streamChannel = serverClient.channel("messaging", channelId);
+    await streamChannel.removeMembers([userId]);
+
+    console.log(streamChannel);
+
     const channel = await prisma.channel.update({
-      where: { id: channelId },
+      where: { streamId: channelId },
       data: { members: { disconnect: { username: userId } } },
       include: { members: true },
     });
@@ -179,10 +165,6 @@ async function unsubscribeFromChannel(req, res) {
 
     console.log(channel);
 
-    const streamChannel = serverClient.channel("messaging", `${channelId}`);
-    await streamChannel.removeMembers([userId]);
-
-    console.log(streamChannel);
     console.log("=== Channel's members ===");
     console.log(channel.members.map((member) => member.username));
 
@@ -196,15 +178,13 @@ async function unsubscribeFromChannel(req, res) {
 
 async function deleteChannel(req, res) {
   try {
-    const id = +req.params.id;
-    const dbChannel = await prisma.channel.delete({ where: { id } });
-    await prisma.$disconnect();
+    const streamId = req.params.id;
     const streamResponse = await serverClient.deleteChannels(
-      [`messaging:${dbChannel.id}`],
-      {
-        hard_delete: true,
-      }
+      [`messaging:${streamId}`],
+      { hard_delete: true }
     );
+    const dbChannel = await prisma.channel.delete({ where: { streamId } });
+    await prisma.$disconnect();
 
     console.log("=== deleteChannel ===");
     console.log({ dbChannel, streamResponse });

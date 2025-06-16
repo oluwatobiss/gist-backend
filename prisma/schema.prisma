@@ -32,6 +32,7 @@ model Channel {
   imageUrl  String
   creator   User   @relation("Channels", fields: [creatorId], references: [username])
   creatorId String
+  streamId  String @unique
   members   User[] @relation("Membership")
 }
 
