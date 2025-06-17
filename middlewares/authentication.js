@@ -8,12 +8,7 @@ function authenticateUser(req, res, next) {
   jwt.verify(userToken, process.env.JWT_SECRET, (err, decoded) => {
     if (err)
       return res.status(403).json({ message: "Invalid verification token" });
-
-    console.log("=== authenticateUser ===");
-    console.log(decoded);
-
     req.user = decoded;
-
     next();
   });
 }

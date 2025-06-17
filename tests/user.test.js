@@ -3,7 +3,6 @@ const express = require("express");
 const userRouter = require("../routes/user");
 const request = require("supertest");
 const app = express();
-// let userId = 0;
 
 app.use(cors());
 app.use(express.json());

@@ -15,10 +15,6 @@ async function getUsers(req, res) {
     if (req.query.status !== "ADMIN")
       return res.status(400).json({ message: "Invalid access credentials" });
     const users = await prisma.user.findMany();
-
-    console.log("=== getUsers ===");
-    console.log(users);
-
     await prisma.$disconnect();
     return res.json(users);
   } catch (e) {
@@ -52,13 +48,10 @@ const createUser = [
     bcrypt.hash(password, 10, async (err, hashedPassword) => {
       if (err) return next(err);
       try {
-        const upsertResponse = await serverClient.upsertUser({
+        await serverClient.upsertUser({
           id: username,
           role: status === "ADMIN" ? "admin" : "user",
         });
-
-        console.log("=== createUser ===");
-        console.log(upsertResponse);
         const user = await prisma.user.create({
           data: {
             firstName,
@@ -70,7 +63,6 @@ const createUser = [
           },
         });
         await prisma.$disconnect();
-
         return res.json({ id: user.id, username });
       } catch (e) {
         console.error(e);
@@ -90,10 +82,6 @@ const updateUser = [
     }
     // No username update to prevent StreamChat from creating a new user
     const { firstName, lastName, email, admin, adminCode } = req.body;
-
-    console.log("=== updateUser 01 ===");
-    console.log(req.body);
-
     let status = "BASIC";
     if (admin) {
       if (adminCode === process.env.ADMIN_CODE) {
@@ -108,7 +96,7 @@ const updateUser = [
     }
     try {
       const username = req.params.username;
-      const upsertResponse = await serverClient.upsertUser({
+      await serverClient.upsertUser({
         id: username,
         role: status === "ADMIN" ? "admin" : "user",
       });
@@ -123,16 +111,6 @@ const updateUser = [
         password: "***",
         membership: userData.membership.map((channel) => channel.name),
       };
-
-      console.log("=== updateUser ===");
-      console.log(upsertResponse);
-
-      console.log("=== user ===");
-      console.log(userData);
-
-      console.log("=== lessUserData ===");
-      console.log(lessUserData);
-
       return res.json(lessUserData);
     } catch (e) {
       console.error(e);
@@ -145,19 +123,11 @@ const updateUser = [
 async function deleteUser(req, res) {
   try {
     const username = req.params.username;
-    const deactivate = await serverClient.deactivateUser(username, {
+    await serverClient.deactivateUser(username, {
       mark_messages_deleted: false,
     });
-
-    console.log("=== deleteUser StreamChat ===");
-    console.log(deactivate);
-
     const user = await prisma.user.delete({ where: { username } });
     await prisma.$disconnect();
-
-    console.log("=== deleteUser db ===");
-    console.log(user);
-
     return res.json(user);
   } catch (e) {
     console.error(e);

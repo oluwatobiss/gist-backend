@@ -33,16 +33,11 @@ passport.use(
           msg: "Incorrect password",
           path: "password",
         });
-
       const lessUserData = {
         ...userData,
         password: "***",
         membership: userData.membership.map((channel) => channel.name),
       };
-
-      console.log("=== lessUserData ===");
-      console.log(lessUserData);
-
       return done(null, lessUserData);
     } catch (e) {
       console.error(e);

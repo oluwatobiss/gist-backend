@@ -16,17 +16,12 @@ async function getChannels(req, res) {
       include: { members: true },
     });
     await prisma.$disconnect();
-
     const channelsWithLessMembersData = channels.map((channel) => {
       return {
         ...channel,
         members: channel.members.map((member) => member.username),
       };
     });
-
-    console.log("=== getChannels ===");
-    console.log(channelsWithLessMembersData);
-
     return res.json(channelsWithLessMembersData);
   } catch (e) {
     console.error(e);
@@ -56,15 +51,8 @@ const createChannel = [
         data: { name, imageUrl, creatorId, streamId },
       });
       await prisma.$disconnect();
-
-      console.log("=== createChannel ===");
-      console.log(streamId);
-      console.log(channel);
-      console.log(streamChannel);
-
       return res.json(channel);
     } catch (e) {
-      console.log("=== Error Creating Channel ===");
       console.error(e);
       await prisma.$disconnect();
       process.exit(1);
@@ -79,7 +67,6 @@ const updateChannel = [
     if (!result.isEmpty())
       return res.status(400).json({ errors: result.array() });
     try {
-      console.log("=== updateChannel ===");
       const streamId = req.params.id;
       const creatorId = req.query.creator;
       const { name, imageUrl } = req.body;
@@ -88,18 +75,11 @@ const updateChannel = [
         { name: name, image: imageUrl, created_by_id: creatorId },
         { text: `${creatorId} updated the channel`, user_id: creatorId }
       );
-
-      console.log(streamId);
-      console.log(streamChannel);
-
       const channel = await prisma.channel.update({
         where: { streamId },
         data: { name, imageUrl, creatorId: req.query.creator },
       });
       await prisma.$disconnect();
-
-      console.log(channel);
-
       return res.json(channel);
     } catch (e) {
       console.error(e);
@@ -111,30 +91,16 @@ const updateChannel = [
 
 async function subscribeToChannel(req, res) {
   try {
-    console.log("=== subscribeToChannel ===");
     const channelId = req.params.channelId;
     const userId = req.params.username;
-
-    console.log({ channelId, userId });
-
     const streamChannel = serverClient.channel("messaging", channelId);
     await streamChannel.addMembers([userId]);
-
-    console.log(streamChannel);
-
     const channel = await prisma.channel.update({
       where: { streamId: channelId },
       data: { members: { connect: { username: userId } } },
       include: { members: true },
     });
     await prisma.$disconnect();
-
-    console.log("=== DB subscribeToChannel ===");
-    console.log(channel);
-
-    console.log("=== Channel's members ===");
-    console.log(channel.members.map((member) => member.username));
-
     return res.json(channel.members.map((member) => member.username));
   } catch (e) {
     console.error(e);
@@ -145,29 +111,16 @@ async function subscribeToChannel(req, res) {
 
 async function unsubscribeFromChannel(req, res) {
   try {
-    console.log("=== unsubscribeFromChannel ===");
     const channelId = req.params.channelId;
     const userId = req.params.username;
-
-    console.log({ channelId, userId });
-
     const streamChannel = serverClient.channel("messaging", channelId);
     await streamChannel.removeMembers([userId]);
-
-    console.log(streamChannel);
-
     const channel = await prisma.channel.update({
       where: { streamId: channelId },
       data: { members: { disconnect: { username: userId } } },
       include: { members: true },
     });
     await prisma.$disconnect();
-
-    console.log(channel);
-
-    console.log("=== Channel's members ===");
-    console.log(channel.members.map((member) => member.username));
-
     return res.json(channel.members.map((member) => member.username));
   } catch (e) {
     console.error(e);
@@ -185,10 +138,6 @@ async function deleteChannel(req, res) {
     );
     const dbChannel = await prisma.channel.delete({ where: { streamId } });
     await prisma.$disconnect();
-
-    console.log("=== deleteChannel ===");
-    console.log({ dbChannel, streamResponse });
-
     return res.json({ dbChannel, streamResponse });
   } catch (e) {
     console.error(e);
