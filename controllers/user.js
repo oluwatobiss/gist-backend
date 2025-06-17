@@ -15,6 +15,10 @@ async function getUsers(req, res) {
     if (req.query.status !== "ADMIN")
       return res.status(400).json({ message: "Invalid access credentials" });
     const users = await prisma.user.findMany();
+
+    console.log("=== getUsers ===");
+    console.log(users);
+
     await prisma.$disconnect();
     return res.json(users);
   } catch (e) {
