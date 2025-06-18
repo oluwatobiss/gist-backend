@@ -4,6 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "npm run postinstall && npm run db:deploy",
+    "db:deploy": "prisma migrate deploy",
+    "db:dev": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset -f",
+    "dev": "node app.js",
+    "postinstall": "prisma generate",
+    "start": "node app.js",
     "test": "jest"
   },
   "keywords": [],
